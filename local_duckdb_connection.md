@@ -16,3 +16,5 @@ ATTACH 'ducklake:postgres:dbname={{POSTGRES_DATABASE}} host={{POSTGRES_HOST}} po
 use ducklake_test;
 CALL start_ui();
 ```
+
+## connect with the duckdb cli

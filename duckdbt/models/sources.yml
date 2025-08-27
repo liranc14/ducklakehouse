@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: my_raw_data
+    tables:
+      - name: team
+        meta:
+          external_location: "read_csv_auto('s3://ducklakehouse/raw/team.csv')"

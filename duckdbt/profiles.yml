@@ -1,0 +1,27 @@
+duckdbt:
+  outputs:
+    dev:
+      type: duckdb
+      database: ducklake_test
+      extensions:
+        - httpfs
+        - parquet
+      secrets:
+        - type: s3
+          region: "{{ env_var('AWS_REGION') }}"
+          key_id: "{{ env_var('S3_ACCESS_KEY_ID') }}"
+          secret: "{{ env_var('S3_SECRET_ACCESS_KEY') }}"
+        - type: postgres
+          name: pg_metadata
+          host: "{{ env_var('POSTGRES_HOST') }}"
+          port: "{{ env_var('POSTGRES_PORT') }}"
+          user: "{{ env_var('POSTGRES_USER') }}"
+          password: "{{ env_var('POSTGRES_PASSWORD') }}"
+          database: "{{ env_var('POSTGRES_DATABASE') }}"
+      attach:
+        - path: "ducklake:postgres:"
+          alias: ducklake_test
+          options:
+            meta_secret: pg_metadata
+            data_path: 's3://ducklakehouse'
+  target: dev

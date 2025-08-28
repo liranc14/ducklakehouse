@@ -14,6 +14,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      ECR_REPO: 822853810208.dkr.ecr.us-east-1.amazonaws.com/ducklakehouse
 
     steps:
       - name: Checkout code
@@ -32,25 +34,17 @@ jobs:
 
       - name: Build, tag, and push image to ECR
         run: |
-          # Friendly local image name
-          LOCAL_IMAGE_NAME=dbt-job
-
-          # Full ECR repository
-          ECR_REPO=822853810208.dkr.ecr.us-east-1.amazonaws.com/ducklakehouse
-
-          # Tag with commit SHA
           IMAGE_TAG=${{ github.sha }}
 
-          echo "Building local image..."
-          docker build -t $LOCAL_IMAGE_NAME .
+          echo "Building image for ECR..."
+          docker build -t $ECR_REPO:$IMAGE_TAG .
 
-          echo "Tagging for ECR..."
-          docker tag $LOCAL_IMAGE_NAME:latest $ECR_REPO:latest
-          docker tag $LOCAL_IMAGE_NAME:latest $ECR_REPO:$IMAGE_TAG
+          echo "Tagging latest..."
+          docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
 
-          echo "Pushing to ECR..."
-          docker push $ECR_REPO:latest
+          echo "Pushing image to ECR..."
           docker push $ECR_REPO:$IMAGE_TAG
+          docker push $ECR_REPO:latest
 
           # Export for ECS task update
           echo "image=$ECR_REPO:$IMAGE_TAG" >> $GITHUB_ENV

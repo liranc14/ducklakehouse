@@ -1,49 +1,37 @@
-[0m20:06:23.591645 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D37A90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000000070A8700>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007E433D0>]}
+[0m18:53:57.730689 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D37A60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007FDD150>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007FDEEF0>]}
 
 
-============================== 20:06:23.595645 | 4bf6e737-c650-4559-b2f6-5f21da39acf5 ==============================
-[0m20:06:23.595645 [info ] [MainThread]: Running with dbt=1.10.5
-[0m20:06:23.596645 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': 'C:\\Users\\Administrator\\.dbt', 'fail_fast': 'False', 'debug': 'False', 'log_path': 'logs', 'warn_error': 'None', 'version_check': 'True', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'invocation_command': 'dbt init', 'static_parser': 'True', 'introspect': 'True', 'target_path': 'None', 'log_format': 'default', 'send_anonymous_usage_stats': 'True'}
-[0m20:06:33.668909 [debug] [MainThread]: Starter project path: C:\Users\Administrator\dbt_env\lib\site-packages\dbt\include\starter_project
-[0m20:06:33.684178 [info ] [MainThread]: 
-Your new dbt project "duckdbt" was created!
+============================== 18:53:57.732795 | 154e9bb5-0470-45ae-bf1d-0247e39fa4fc ==============================
+[0m18:53:57.732795 [info ] [MainThread]: Running with dbt=1.10.5
+[0m18:53:57.733819 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': 'C:\\Users\\Administrator\\ducklakehouse', 'fail_fast': 'False', 'debug': 'False', 'log_path': 'C:\\Users\\Administrator\\ducklakehouse\\logs', 'version_check': 'True', 'warn_error': 'None', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'log_format': 'default', 'static_parser': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'invocation_command': 'dbt list', 'target_path': 'None', 'introspect': 'True', 'send_anonymous_usage_stats': 'True'}
+[0m18:53:57.753437 [info ] [MainThread]: Error importing adapter: No module named 'dbt.adapters.duckdb'
+[0m18:53:57.754057 [error] [MainThread]: Encountered an error:
+Runtime Error
+  Credentials in profile "duckdbt", target "dev" invalid: Runtime Error
+    Could not find adapter type duckdb!
+[0m18:53:57.755063 [debug] [MainThread]: Command `dbt list` failed at 18:53:57.755063 after 0.09 seconds
+[0m18:53:57.755063 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D37A60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007FDFC10>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007F87BB0>]}
+[0m18:53:57.756063 [debug] [MainThread]: Flushing usage events
+[0m18:53:58.414374 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m18:54:25.076510 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D43B50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007F9FCA0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000007F9F610>]}
 
-For more information on how to configure the profiles.yml file,
-please consult the dbt documentation here:
 
-  https://docs.getdbt.com/docs/configure-your-profile
-
-One more thing:
-
-Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
-
-  https://community.getdbt.com/
-
-Happy modeling!
-
-[0m20:06:33.685220 [info ] [MainThread]: Setting up your profile.
-[0m20:06:38.719727 [error] [MainThread]: Encountered an error:
-
-[0m20:06:38.735130 [error] [MainThread]: Traceback (most recent call last):
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\cli\requires.py", line 178, in wrapper
-    result, success = func(*args, **kwargs)
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\cli\requires.py", line 128, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\cli\main.py", line 483, in init
-    results = task.run()
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\task\init.py", line 346, in run
-    self.setup_profile(profile_name)
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\task\init.py", line 261, in setup_profile
-    adapter = self.ask_for_adapter_choice()
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\dbt\task\init.py", line 242, in ask_for_adapter_choice
-    numeric_choice = click.prompt(prompt_msg, type=click.INT)
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\click\termui.py", line 168, in prompt
-    value = prompt_func(prompt)
-  File "C:\Users\Administrator\dbt_env\lib\site-packages\click\termui.py", line 151, in prompt_func
-    raise Abort() from None
-click.exceptions.Abort
-
-[0m20:06:38.737132 [debug] [MainThread]: Command `dbt init` failed at 20:06:38.737132 after 15.21 seconds
-[0m20:06:38.738133 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D37A90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000008014A30>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000008016050>]}
-[0m20:06:38.739132 [debug] [MainThread]: Flushing usage events
-[0m20:06:39.502270 [debug] [MainThread]: An error was encountered while trying to flush usage events
+============================== 18:54:25.080631 | 38b82374-b863-4c7d-ab81-ce49c2c735a5 ==============================
+[0m18:54:25.080631 [info ] [MainThread]: Running with dbt=1.10.9
+[0m18:54:25.081544 [debug] [MainThread]: running dbt with arguments {'partial_parse': 'True', 'static_parser': 'True', 'send_anonymous_usage_stats': 'True', 'use_colors': 'True', 'cache_selected_only': 'False', 'target_path': 'None', 'warn_error': 'None', 'invocation_command': 'dbt list', 'log_format': 'default', 'version_check': 'True', 'introspect': 'True', 'debug': 'False', 'log_cache_events': 'False', 'fail_fast': 'False', 'no_print': 'None', 'empty': 'None', 'use_experimental_parser': 'False', 'quiet': 'False', 'printer_width': '80', 'log_path': 'C:\\Users\\Administrator\\ducklakehouse\\logs', 'indirect_selection': 'eager', 'profiles_dir': 'C:\\Users\\Administrator\\ducklakehouse', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'write_json': 'True'}
+[0m18:54:25.345765 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '38b82374-b863-4c7d-ab81-ce49c2c735a5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000000042FA800>]}
+[0m18:54:25.396921 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '38b82374-b863-4c7d-ab81-ce49c2c735a5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000008061720>]}
+[0m18:54:25.400466 [info ] [MainThread]: Registered adapter: duckdb=1.9.4
+[0m18:54:25.548351 [debug] [MainThread]: checksum: 6543b8b248ceda473ef0d611849d5d909085b6b714afa9b515e9635faea7af23, vars: {}, profile: , target: , version: 1.10.9
+[0m18:54:25.687667 [debug] [MainThread]: Partial parsing enabled: 0 files deleted, 0 files added, 0 files changed.
+[0m18:54:25.688171 [debug] [MainThread]: Partial parsing enabled, no changes found, skipping parsing
+[0m18:54:25.721907 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '38b82374-b863-4c7d-ab81-ce49c2c735a5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000000000868C130>]}
+[0m18:54:25.791777 [debug] [MainThread]: Wrote artifact WritableManifest to C:\Users\Administrator\ducklakehouse\target\manifest.json
+[0m18:54:25.793961 [debug] [MainThread]: Wrote artifact SemanticManifest to C:\Users\Administrator\ducklakehouse\target\semantic_manifest.json
+[0m18:54:25.818021 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '38b82374-b863-4c7d-ab81-ce49c2c735a5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000000082FE0E0>]}
+[0m18:54:25.819127 [info ] [MainThread]: duckdbt.first_team_model
+[0m18:54:25.819127 [info ] [MainThread]: source:duckdbt.my_raw_data.team
+[0m18:54:25.820035 [debug] [MainThread]: Command `dbt list` succeeded at 18:54:25.820035 after 0.81 seconds
+[0m18:54:25.820035 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000005D43B50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000000008061720>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000000000862E860>]}
+[0m18:54:25.821113 [debug] [MainThread]: Flushing usage events
+[0m18:54:26.570693 [debug] [MainThread]: An error was encountered while trying to flush usage events

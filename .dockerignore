@@ -1,5 +1,7 @@
 .venv
 .vscode
 .env
+logs
 target
-
+Dockerfile
+.user.yml

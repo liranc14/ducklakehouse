@@ -1,0 +1,49 @@
+name: Build and Deploy dbt Job
+
+on:
+  push:
+    branches: ["master"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1   # change to your region
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        run: |
+          IMAGE_NAME=dbt-job
+          IMAGE_TAG=${{ github.sha }}
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO=${ECR_REGISTRY}/${IMAGE_NAME}
+
+          echo "Building image..."
+          docker build -t $ECR_REPO:$IMAGE_TAG .
+
+          echo "Pushing image..."
+          docker push $ECR_REPO:$IMAGE_TAG
+
+          echo "Latest tag for convenience..."
+          docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
+          docker push $ECR_REPO:latest
+
+          echo "image=$ECR_REPO:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Update ECS task definition with new image
+        run: |
+          # Assume you already have a task definition JSON template checked in (ecs-task.json)
+          sed "s|<IMAGE>|${{ env.image }}|" ecs-task.json > ecs-task-updated.json
+          aws ecs register-task-definition --cli-input-json file://ecs-task-updated.json

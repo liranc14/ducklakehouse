@@ -49,7 +49,3 @@ jobs:
           # Export for ECS task update
           echo "image=$ECR_REPO:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Update ECS task definition with new image
-        run: |
-          sed "s|<IMAGE>|${{ env.image }}|" infra/ecs-task.json > ecs-task-updated.json
-          aws ecs register-task-definition --cli-input-json file://ecs-task-updated.json

@@ -34,7 +34,7 @@ jobs:
 
       - name: Build, tag, and push image to ECR
         run: |
-          IMAGE_TAG=${{ github.sha }}
+          IMAGE_TAG=dbt-job
 
           echo "Building image for ECR..."
           docker build -t $ECR_REPO:$IMAGE_TAG .

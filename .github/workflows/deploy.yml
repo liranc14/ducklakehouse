@@ -3,6 +3,13 @@ name: Build and Deploy dbt Job
 on:
   push:
     branches: ["master"]
+    paths:
+      - "models/**"
+      - "seeds/**"
+      - "tests/**"
+      - "macros/**"
+      - "dbt_project.yml"
+      - "Dockerfile"
 
 jobs:
   build-and-deploy:

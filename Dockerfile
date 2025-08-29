@@ -1,8 +1,9 @@
 # Base image with Python
 FROM python:3.11-slim
 
-# Install dbt-duckdb
-RUN pip install --no-cache-dir dbt-duckdb==1.9.4
+# Install dependencies from requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Set working dir
 WORKDIR /app

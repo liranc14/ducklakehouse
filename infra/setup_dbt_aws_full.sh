@@ -4,7 +4,7 @@
 # CONFIGURATION VARIABLES
 # -----------------------------------
 AWS_REGION="${AWS_REGION}"
-AWS_ACCOUNT_ID="${AWS_REGION}"
+AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID}"
 
 # ECR
 ECR_REPO_NAME="ducklakehouse"
@@ -113,13 +113,6 @@ aws iam put-role-policy \
     }"
 
 # -----------------------------------
-# 6️⃣ Create CloudWatch Log Group
-# -----------------------------------
-aws logs create-log-group \
-    --log-group-name $LOG_GROUP \
-    --region $AWS_REGION || echo "Log group may already exist"
-
-# -----------------------------------
 # 7️⃣ Register ECS Task Definition
 # -----------------------------------
 cat > ecs-task.json <<EOL
@@ -138,7 +131,8 @@ cat > ecs-task.json <<EOL
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "$LOG_GROUP",
+          "awslogs-group": "/ecs/$TASK_DEFINITION_NAME",
+          "awslogs-create-group": "true",
           "awslogs-region": "$AWS_REGION",
           "awslogs-stream-prefix": "ecs"
         }

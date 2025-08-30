@@ -2,7 +2,8 @@ name: first dbt Job
 
 on:
   schedule:
-    - cron: '11 8 * * *'  # Every day at 08:00 UTC
+    - cron: '14 8 * * *'  # Every day at 08:00 UTC
+      branches: [master]
   workflow_dispatch:     # Optional: allows manual run
 
 jobs:

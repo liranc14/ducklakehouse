@@ -27,13 +27,13 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build, tag, and push image to GHCR
         run: |
           IMAGE_TAG=dbt-job
 
-          echo "Building image for GHCR..."
+          echo "Building image..."
           docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
 
           echo "Tagging latest..."

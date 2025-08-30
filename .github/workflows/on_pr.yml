@@ -1,15 +1,13 @@
 name: CI - dbt PR Validation
 
 # on:
-#   workflow_dispatch:
+#   workflow_dispatch: # Disabled by default, manual run only
 #   pull_request:
 #     branches: ["master"]
 #     paths:
 #       - "models/**"
 #       - "seeds/**"
-#       - "tests/**"
 #       - "macros/**"
-#       - "dbt_project.yml"
 
 jobs:
   ci-dbt:
@@ -22,19 +20,44 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Detect changed models
+      - name: Detect changed models, seeds, macros
         id: changes
         run: |
-          # Get list of added/modified and deleted models
           git fetch origin master
-          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "models/**/*.sql" | xargs)
-          DELETED=$(git diff --name-only --diff-filter=D origin/master...HEAD -- "models/**/*.sql" | xargs)
+
+          # Detect added/modified models and seeds
+          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "models/**/*.sql" "seeds/**/*.csv" | xargs)
+
+          # Detect deleted models/seeds
+          DELETED=$(git diff --name-only --diff-filter=D origin/master...HEAD -- "models/**/*.sql" "seeds/**/*.csv" | xargs)
+
+          # Detect changed macros
+          CHANGED_MACROS=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "macros/**/*.sql" | xargs)
+          if [ -n "$CHANGED_MACROS" ]; then
+            echo "Macros changed: $CHANGED_MACROS"
+            for macro_file in $CHANGED_MACROS; do
+              macro_name=$(basename "$macro_file" .sql)
+              # Find models/seeds that use this macro
+              macro_dependents=$(docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                list --select "+ ${macro_name}()" | xargs)
+              ADDED_MODIFIED="$ADDED_MODIFIED $macro_dependents"
+            done
+          fi
 
           echo "added_or_modified=$ADDED_MODIFIED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT
 
-          echo "Added/Modified models: $ADDED_MODIFIED"
-          echo "Deleted models: $DELETED"
+          echo "Added/Modified: $ADDED_MODIFIED"
+          echo "Deleted: $DELETED"
 
       - name: Build dbt image (no push)
         uses: docker/build-push-action@v4
@@ -53,42 +76,60 @@ jobs:
             pg_password=${{ secrets.POSTGRES_PASSWORD }}
             pg_database=${{ secrets.POSTGRES_DATABASE }}
 
-      - name: Run dbt for added/modified models
+      - name: Run dbt for added/modified models/seeds
         if: ${{ steps.changes.outputs.added_or_modified != '' }}
         run: |
-          for model in ${{ steps.changes.outputs.added_or_modified }}; do
-            base=$(basename "$model" .sql)
-            echo ">>> Running full-refresh build for $base"
-            docker run --rm \
-              -e AWS_REGION=${{ secrets.AWS_REGION }} \
-              -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-              -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
-              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
-              -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
-              -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-              -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-              dbt build -s path:models/$base+ --vars '{"ci_mode":"true"}' --full-refresh
+          for path in ${{ steps.changes.outputs.added_or_modified }}; do
+            base=$(basename "$path" .sql)
+            dir=$(dirname "$path")
+            
+            if [[ "$dir" == models* ]]; then
+              echo ">>> Running full-refresh build for model $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                build -s path:$dir/$base+ --vars '{"ci_mode":"true"}' --full-refresh
 
-            echo ">>> Running incremental check for $base"
-            docker run --rm \
-              -e AWS_REGION=${{ secrets.AWS_REGION }} \
-              -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-              -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
-              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
-              -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
-              -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-              -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-              dbt build -s path:models/$base+,config.materialized:incremental --vars '{"ci_mode":"true"}'
+              echo ">>> Running incremental check for model $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                build -s path:$dir/$base+,config.materialized:incremental --vars '{"ci_mode":"true"}'
+
+            elif [[ "$dir" == seeds* ]]; then
+              echo ">>> Running seed full-refresh for $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                seed -s path:$dir/$base+ --vars '{"ci_mode":"true"}' --full-refresh
+            fi
           done
 
-      - name: Run dbt for deleted models
+      - name: Run dbt for deleted models/seeds
         if: ${{ steps.changes.outputs.deleted != '' }}
         run: |
-          echo ">>> Full-refresh run with --empty (detect broken refs from deleted models)"
+          echo ">>> Full-refresh run with --empty (deleted models/seeds)"
           docker run --rm \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
@@ -99,9 +140,9 @@ jobs:
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            dbt build --empty --full-refresh --vars '{"ci_mode":"true"}'
+            build --empty --full-refresh --vars '{"ci_mode":"true"}'
 
-          echo ">>> Incremental check for deleted models"
+          echo ">>> Incremental check for deleted models/seeds"
           docker run --rm \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
@@ -112,4 +153,4 @@ jobs:
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            dbt build -s config.materialized:incremental --vars '{"ci_mode":"true"}'
+            build -s config.materialized:incremental --vars '{"ci_mode":"true"}'

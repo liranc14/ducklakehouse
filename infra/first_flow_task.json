@@ -1,0 +1,59 @@
+{
+  "family": "first_flow",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "arn:aws:iam::822853810208:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "first_flow",
+      "image": "822853810208.dkr.ecr.us-east-1.amazonaws.com/ducklakehouse:latest",
+      "essential": true,
+      "entryPoint": ["run", "-s", "first_team_model"],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/first_flow",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "secrets": [
+        {
+          "name": "AWS_REGION",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:AWS_REGION::"
+        },
+        {
+          "name": "S3_ACCESS_KEY_ID",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:S3_ACCESS_KEY_ID::"
+        },
+        {
+          "name": "S3_SECRET_ACCESS_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:S3_SECRET_ACCESS_KEY::"
+        },
+        {
+          "name": "POSTGRES_HOST",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:POSTGRES_HOST::"
+        },
+        {
+          "name": "POSTGRES_PORT",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:POSTGRES_PORT::"
+        },
+        {
+          "name": "POSTGRES_USER",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:POSTGRES_USER::"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:POSTGRES_PASSWORD::"
+        },
+        {
+          "name": "POSTGRES_DATABASE",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:822853810208:secret:duck_dbt-9vq1gO:POSTGRES_DATABASE::"
+        }
+      ]
+    }
+  ]
+}

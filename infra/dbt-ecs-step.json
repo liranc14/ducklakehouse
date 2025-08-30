@@ -1,0 +1,33 @@
+{
+  "Comment": "Run dbt job on ECS",
+  "StartAt": "RunDBT",
+  "States": {
+    "RunDBT": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "duck_cluster",
+        "TaskDefinition": "dbt_jobs:2",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["subnet-083ecd4bf0df82b0e"],
+            "SecurityGroups": ["sg-0114ff8eed54bcc0c"],
+            "AssignPublicIp": "ENABLED"
+          }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "dbt_jobs",
+              "Command": ["run", "-s", "first_team_model"],
+              "Cpu": 4096,
+              "Memory": 2048
+            }
+          ]
+        }
+      },
+      "End": true
+    }
+  }
+}

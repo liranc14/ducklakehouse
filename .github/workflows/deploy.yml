@@ -29,7 +29,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push Docker image with cache
+      - name: Build, tag, and push image to GHCR
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -37,15 +37,12 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-to: type=inline
-          build-args: |
-            AWS_REGION=${{ secrets.AWS_REGION }}
-            S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }}
-            S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }}
-            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
-            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }}
-          login: true
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          secrets: |
+            aws_region=${{ secrets.AWS_REGION }}
+            s3_key=${{ secrets.S3_ACCESS_KEY_ID }}
+            s3_secret=${{ secrets.S3_SECRET_ACCESS_KEY }}
+            pg_host=${{ secrets.POSTGRES_HOST }}
+            pg_port=${{ secrets.POSTGRES_PORT }}
+            pg_user=${{ secrets.POSTGRES_USER }}
+            pg_password=${{ secrets.POSTGRES_PASSWORD }}
+            pg_database=${{ secrets.POSTGRES_DATABASE }}

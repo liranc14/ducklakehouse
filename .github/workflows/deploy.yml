@@ -15,37 +15,33 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      ECR_REPO: 822853810208.dkr.ecr.us-east-1.amazonaws.com/ducklakehouse
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push image to ECR
+      - name: Build, tag, and push image to GHCR
         run: |
           IMAGE_TAG=dbt-job
 
-          echo "Building image for ECR..."
-          docker build -t $ECR_REPO:$IMAGE_TAG .
+          echo "Building image for GHCR..."
+          docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
 
           echo "Tagging latest..."
-          docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
+          docker tag $REGISTRY/$IMAGE_NAME:$IMAGE_TAG $REGISTRY/$IMAGE_NAME:latest
 
-          echo "Pushing image to ECR..."
-          docker push $ECR_REPO:$IMAGE_TAG
-          docker push $ECR_REPO:latest
+          echo "Pushing image to GHCR..."
+          docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          docker push $REGISTRY/$IMAGE_NAME:latest
 
-          # Export for ECS task update
-          echo "image=$ECR_REPO:$IMAGE_TAG" >> $GITHUB_ENV
-
+          # Export for later jobs
+          echo "image=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" >> $GITHUB_ENV

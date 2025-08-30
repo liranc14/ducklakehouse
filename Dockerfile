@@ -14,5 +14,11 @@ COPY . .
 ENV DBT_PROFILES_DIR=/app
 ENV DBT_PROJECT_DIR=/app
 
+# Pre-download dbt packages
+RUN dbt deps
+
+# Pre-compile all models
+RUN dbt compile
+
 # Default command (can be overridden by ECS/EventBridge)
 ENTRYPOINT ["dbt"]

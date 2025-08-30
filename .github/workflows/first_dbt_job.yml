@@ -18,8 +18,6 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
 
-      DBT_COMMAND: "run -s first_team_model"
-
     steps:
       - name: Checkout code (optional, if needed)
         uses: actions/checkout@v4
@@ -42,4 +40,4 @@ jobs:
             -e POSTGRES_USER \
             -e POSTGRES_PASSWORD \
             -e POSTGRES_DATABASE \
-            ghcr.io/liranc14/ducklakehouse:latest $DBT_COMMAND
+            ghcr.io/liranc14/ducklakehouse:latest run -s first_team_model

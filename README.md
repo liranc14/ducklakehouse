@@ -31,6 +31,7 @@ ducklakehouse
 ## CI/CD Process
 
 A Continuous Deployment (CD) process is set up to build a Docker image of the dbt project on every change. This ensures that all transformations and dependencies are up-to-date and ready for deployment.
+All aforementioned environment variables need to set as secrets in the GitHub repository, as well as GHCR_PAT - GitHub personal access token
 
 
 ## dbt Workflows

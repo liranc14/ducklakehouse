@@ -1,45 +1,38 @@
-# Base image with Python
+# syntax=docker/dockerfile:1.4
 FROM python:3.11-slim
 
-# Install dependencies from requirements.txt
+# Install dependencies
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Set working dir
 WORKDIR /app
-
-# Copy only needed files (honoring .dockerignore)
 COPY . .
 
-# Set dbt environment variables
+# Set dbt environment directories
 ENV DBT_PROFILES_DIR=/app
 ENV DBT_PROJECT_DIR=/app
 
-# Accept build-time secrets as arguments
-ARG AWS_REGION
-ARG S3_ACCESS_KEY_ID
-ARG S3_SECRET_ACCESS_KEY
-ARG POSTGRES_HOST
-ARG POSTGRES_PORT
-ARG POSTGRES_USER
-ARG POSTGRES_PASSWORD
-ARG POSTGRES_DATABASE
-
-# Set build args as env vars inside the container
-ENV AWS_REGION=$AWS_REGION
-ENV S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID
-ENV S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY
-ENV POSTGRES_HOST=$POSTGRES_HOST
-ENV POSTGRES_PORT=$POSTGRES_PORT
-ENV POSTGRES_USER=$POSTGRES_USER
-ENV POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-ENV POSTGRES_DATABASE=$POSTGRES_DATABASE
-
-# Pre-download dbt packages
+# Pre-download dbt packages (no secrets needed)
 RUN dbt deps
 
-# Pre-compile all models (now has access to env vars)
-RUN dbt compile
+# Pre-compile models using all secrets at build time
+RUN --mount=type=secret,id=aws_region \
+    --mount=type=secret,id=s3_key \
+    --mount=type=secret,id=s3_secret \
+    --mount=type=secret,id=pg_host \
+    --mount=type=secret,id=pg_port \
+    --mount=type=secret,id=pg_user \
+    --mount=type=secret,id=pg_password \
+    --mount=type=secret,id=pg_database \
+    export AWS_REGION=$(cat /run/secrets/aws_region) && \
+    export S3_ACCESS_KEY_ID=$(cat /run/secrets/s3_key) && \
+    export S3_SECRET_ACCESS_KEY=$(cat /run/secrets/s3_secret) && \
+    export POSTGRES_HOST=$(cat /run/secrets/pg_host) && \
+    export POSTGRES_PORT=$(cat /run/secrets/pg_port) && \
+    export POSTGRES_USER=$(cat /run/secrets/pg_user) && \
+    export POSTGRES_PASSWORD=$(cat /run/secrets/pg_password) && \
+    export POSTGRES_DATABASE=$(cat /run/secrets/pg_database) && \
+    dbt compile
 
-# Default command (can be overridden by docker run / ECS / EventBridge)
+# Default entrypoint
 ENTRYPOINT ["dbt"]

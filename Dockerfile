@@ -1,7 +1,6 @@
-# syntax=docker/dockerfile:1.4
 FROM python:3.11-slim
 
-# Install dependencies
+
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
@@ -12,10 +11,10 @@ COPY . .
 ENV DBT_PROFILES_DIR=/app
 ENV DBT_PROJECT_DIR=/app
 
-# Pre-download dbt packages (no secrets needed)
+
 RUN dbt deps
 
-# Pre-compile models using all secrets at build time
+# Pre-compile models
 RUN --mount=type=secret,id=aws_region \
     --mount=type=secret,id=s3_key \
     --mount=type=secret,id=s3_secret \
@@ -34,5 +33,4 @@ RUN --mount=type=secret,id=aws_region \
     export POSTGRES_DATABASE=$(cat /run/secrets/pg_database) && \
     dbt compile
 
-# Default entrypoint
 ENTRYPOINT ["dbt"]

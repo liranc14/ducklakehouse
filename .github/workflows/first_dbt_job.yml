@@ -2,7 +2,7 @@ name: first dbt Job
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Every day at 09:00 UTC
+    - cron: '/30 * * * *'
   workflow_dispatch:
 
 jobs:

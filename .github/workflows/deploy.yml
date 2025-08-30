@@ -46,3 +46,6 @@ jobs:
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }}
+          login: true
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}

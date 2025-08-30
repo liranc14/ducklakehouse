@@ -2,7 +2,7 @@ name: first dbt Job
 
 on:
   schedule:
-    - cron: '45 * * * *'
+    - cron: '45 5 * * *'
   workflow_dispatch:
 
 jobs:

@@ -6,8 +6,6 @@ on:
     paths:
       - "models/**"
       - "seeds/**"
-      - "dbt_project.yml"
-      - "Dockerfile"
 
 jobs:
   build-and-deploy:

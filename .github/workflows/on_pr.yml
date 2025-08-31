@@ -18,17 +18,20 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper diffs
 
       - name: Detect changed models and seeds
         id: changes
         run: |
-          git fetch origin master
+          # Ensure master branch is fetched locally
+          git fetch origin master:master
 
           # Detect added/modified models and seeds
-          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
+          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
 
           # Detect deleted models and seeds
-          DELETED=$(git diff --name-only --diff-filter=D origin/master...HEAD -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
+          DELETED=$(git diff --name-only --diff-filter=D master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
 
           echo "added_or_modified=$ADDED_MODIFIED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT

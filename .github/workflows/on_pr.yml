@@ -1,7 +1,7 @@
 name: CI - dbt PR Validation
 
-# on:
-#   workflow_dispatch: # Disabled by default, manual run only
+on:
+  workflow_dispatch: # Disabled by default, manual run only
 #   pull_request:
 #     branches: ["master"]
 #     paths:

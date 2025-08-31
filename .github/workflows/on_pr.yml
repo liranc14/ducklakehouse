@@ -64,48 +64,51 @@ jobs:
       - name: Run dbt for added/modified models/seeds
         if: ${{ steps.changes.outputs.added_or_modified != '' }}
         run: |
-          # Read changed files into an array
-          IFS=$'\n' read -r -d '' -a MODELS <<< "${{ steps.changes.outputs.added_or_modified }}"
+          # Read changed files into an array safely
+          MODELS=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && MODELS+=("$line")
+          done <<< "${{ steps.changes.outputs.added_or_modified }}"
 
           # Build list for full-refresh
           FULL_REFRESH_ARGS=()
           for m in "${MODELS[@]}"; do
-            [ -z "$m" ] && continue
             FULL_REFRESH_ARGS+=("path:$m+")
           done
 
           echo ">>> Running dbt full-refresh build for models: ${MODELS[*]}"
+          echo "docker run ... build -s ${FULL_REFRESH_ARGS[*]} --vars '{ci_row_limit: 1000}' --full-refresh"
           docker run --rm \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+            -e S3_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e S3_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
             -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
             -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build -s "${FULL_REFRESH_ARGS[@]}" --vars '{"ci_row_limit": 1000}' --full-refresh
+            build -s "${FULL_REFRESH_ARGS[@]}" --vars '{ci_row_limit: 1000}' --full-refresh
 
           # Build list for incremental run
           INCREMENTAL_ARGS=()
           for m in "${MODELS[@]}"; do
-            [ -z "$m" ] && continue
             INCREMENTAL_ARGS+=("path:$m+,config.materialized:incremental")
           done
 
           echo ">>> Running dbt incremental check for models: ${MODELS[*]}"
+          echo "docker run ... build -s ${INCREMENTAL_ARGS[*]} --vars '{ci_row_limit: 1000}'"
           docker run --rm \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+            -e S3_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e S3_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
             -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
             -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build -s "${INCREMENTAL_ARGS[@]}" --vars '{"ci_row_limit": 1000}'
+            build -s "${INCREMENTAL_ARGS[@]}" --vars '{ci_row_limit: 1000}'
 
       - name: Run dbt for deleted models/seeds
         if: ${{ steps.changes.outputs.deleted != '' }}
@@ -118,24 +121,12 @@ jobs:
 
           docker run --rm \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+            -e S3_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e S3_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
             -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
             -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build --empty --full-refresh --vars '{"ci_row_limit": 1000}'
-
-          docker run --rm \
-            -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
-            -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
-            -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
-            -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-            -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build -s config.materialized:incremental --vars '{"ci_row_limit": 1000}'
+            build --empty --full-refresh --vars '{ci_row_limit: 1000}'

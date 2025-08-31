@@ -29,10 +29,10 @@ jobs:
           git fetch origin master
 
           # Detect added/modified models and seeds
-          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
+          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$' || true)
 
           # Detect deleted models and seeds
-          DELETED=$(git diff --name-only --diff-filter=D origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
+          DELETED=$(git diff --name-only --diff-filter=D origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$' || true)
 
           echo "added_or_modified=$ADDED_MODIFIED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT

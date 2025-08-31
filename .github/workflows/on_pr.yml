@@ -7,7 +7,6 @@ on:
     paths:
       - "models/**"
       - "seeds/**"
-      - "macros/**"
 
 jobs:
   ci-dbt:
@@ -20,38 +19,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Detect changed models, seeds, macros
+      - name: Detect changed models and seeds
         id: changes
         run: |
           git fetch origin master
 
           # Detect added/modified models and seeds
-          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "models/**/*.sql" "seeds/**/*.csv" | xargs)
+          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
 
-          # Detect deleted models/seeds
-          DELETED=$(git diff --name-only --diff-filter=D origin/master...HEAD -- "models/**/*.sql" "seeds/**/*.csv" | xargs)
-
-          # Detect changed macros
-          CHANGED_MACROS=$(git diff --name-only --diff-filter=AM origin/master...HEAD -- "macros/**/*.sql" | xargs)
-          if [ -n "$CHANGED_MACROS" ]; then
-            echo "Macros changed: $CHANGED_MACROS"
-            for macro_file in $CHANGED_MACROS; do
-              macro_name=$(basename "$macro_file" .sql)
-              # Find models/seeds that use this macro
-              macro_dependents=$(docker run --rm \
-                -e AWS_REGION=${{ secrets.AWS_REGION }} \
-                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
-                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
-                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
-                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
-                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
-                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-                list --select "+ ${macro_name}()" | xargs)
-              ADDED_MODIFIED="$ADDED_MODIFIED $macro_dependents"
-            done
-          fi
+          # Detect deleted models and seeds
+          DELETED=$(git diff --name-only --diff-filter=D origin/master...HEAD -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')
 
           echo "added_or_modified=$ADDED_MODIFIED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT

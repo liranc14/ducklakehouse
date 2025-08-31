@@ -24,8 +24,8 @@ jobs:
       - name: Detect changed models and seeds
         id: changes
         run: |
-          # Ensure master branch is fetched locally
-          git fetch origin master
+          # Fetch remote master safely
+          git fetch origin master || true
 
           # Detect added/modified models and seeds
           ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$')

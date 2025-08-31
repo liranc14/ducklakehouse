@@ -2,12 +2,12 @@ name: CI - dbt PR Validation
 
 on:
   workflow_dispatch: # Disabled by default, manual run only
-#   pull_request:
-#     branches: ["master"]
-#     paths:
-#       - "models/**"
-#       - "seeds/**"
-#       - "macros/**"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - "models/**"
+      - "seeds/**"
+      - "macros/**"
 
 jobs:
   ci-dbt:
@@ -95,7 +95,7 @@ jobs:
                 -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
                 -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
                 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-                build -s path:$dir/$base+ --vars '{"ci_mode":"true"}' --full-refresh
+                build -s path:$dir/$base+ --vars '{"ci_row_limit": 1000}' --full-refresh
 
               echo ">>> Running incremental check for model $base"
               docker run --rm \
@@ -108,7 +108,7 @@ jobs:
                 -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
                 -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
                 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-                build -s path:$dir/$base+,config.materialized:incremental --vars '{"ci_mode":"true"}'
+                build -s path:$dir/$base+,config.materialized:incremental --vars '{"ci_row_limit": 1000}'
 
             elif [[ "$dir" == seeds* ]]; then
               echo ">>> Running seed full-refresh for $base"
@@ -122,7 +122,7 @@ jobs:
                 -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
                 -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
                 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-                seed -s path:$dir/$base+ --vars '{"ci_mode":"true"}' --full-refresh
+                seed -s path:$dir/$base+ --vars '{"ci_row_limit": 1000}' --full-refresh
             fi
           done
 
@@ -140,7 +140,7 @@ jobs:
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build --empty --full-refresh --vars '{"ci_mode":"true"}'
+            build --empty --full-refresh --vars '{"ci_row_limit": 1000}'
 
           echo ">>> Incremental check for deleted models/seeds"
           docker run --rm \
@@ -153,4 +153,4 @@ jobs:
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
-            build -s config.materialized:incremental --vars '{"ci_mode":"true"}'
+            build -s config.materialized:incremental --vars '{"ci_row_limit": 1000}'

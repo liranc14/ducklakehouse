@@ -61,7 +61,7 @@ jobs:
         if: ${{ steps.changes.outputs.added_or_modified != '' }}
         run: |
           for path in ${{ steps.changes.outputs.added_or_modified }}; do
-            base=$(basename "$path" .sql)
+            base=$(basename "$path")
             dir=$(dirname "$path")
             
             if [[ "$dir" == models* ]]; then

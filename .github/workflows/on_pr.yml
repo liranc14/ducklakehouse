@@ -1,78 +1,146 @@
-name: Build and Deploy dbt Job
+name: CI - dbt PR Validation
 
 on:
-  push:
+  workflow_dispatch: # Manual run option
+  pull_request:
     branches: ["master"]
     paths:
       - "models/**"
       - "seeds/**"
 
 jobs:
-  build-and-deploy:
+  ci-dbt:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: liranc14/ducklakehouse
+      IMAGE_NAME: ${{ github.repository }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history needed for diffs
+          fetch-depth: 0  # Full history needed for git diff
 
       - name: Detect changed models and seeds
         id: changes
         run: |
-          # Fetch remote master safely
           git fetch origin master || true
 
-          # Detect added/modified models and seeds
           ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$' || true)
-
-          # Detect deleted models and seeds
           DELETED=$(git diff --name-only --diff-filter=D origin/master -- "models/" "seeds/" | grep -E '\.sql$|\.csv$' || true)
-
-          # Write multiline outputs safely
-          {
-            echo "added_or_modified<<EOF"
-            echo "$ADDED_MODIFIED"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-          {
-            echo "deleted<<EOF"
-            echo "$DELETED"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
 
           echo "Added/Modified files:"
           echo "$ADDED_MODIFIED"
           echo "Deleted files:"
           echo "$DELETED"
 
-      - name: Process added/modified files
-        if: steps.changes.outputs.added_or_modified != ''
-        run: |
-          echo "Processing added/modified files..."
-          echo "${{ steps.changes.outputs.added_or_modified }}" | while read -r path; do
-            echo " -> $path"
-            # Example: run dbt for models
-            if [[ "$path" == models/*.sql ]]; then
-              dbt run -s "path:$path"
-            fi
+          # Use multiline GitHub output syntax
+          {
+            echo "added_or_modified<<EOF"
+            echo "$ADDED_MODIFIED"
+            echo "EOF"
+            echo "deleted<<EOF"
+            echo "$DELETED"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
-            # Example: run dbt seed for seeds
-            if [[ "$path" == seeds/*.csv ]]; then
-              dbt seed --select "$(basename "$path" .csv)"
+      - name: Build dbt image (no push)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci
+          load: true
+          secrets: |
+            aws_region=${{ secrets.AWS_REGION }}
+            s3_key=${{ secrets.S3_ACCESS_KEY_ID }}
+            s3_secret=${{ secrets.S3_SECRET_ACCESS_KEY }}
+            pg_host=${{ secrets.POSTGRES_HOST }}
+            pg_port=${{ secrets.POSTGRES_PORT }}
+            pg_user=${{ secrets.POSTGRES_USER }}
+            pg_password=${{ secrets.POSTGRES_PASSWORD }}
+            pg_database=${{ secrets.POSTGRES_DATABASE }}
+
+      - name: Run dbt for added/modified models/seeds
+        if: ${{ steps.changes.outputs.added_or_modified != '' }}
+        run: |
+          echo "${{ steps.changes.outputs.added_or_modified }}" | while read path; do
+            [ -z "$path" ] && continue
+            base=$(basename "$path" .sql | sed 's/\.csv$//')
+            dir=$(dirname "$path")
+
+            if [[ "$dir" == models* ]]; then
+              echo ">>> Running full-refresh build for model $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                build -s path:$dir/$base+ --vars '{"ci_row_limit": 1000}' --full-refresh
+
+              echo ">>> Running incremental check for model $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                build -s path:$dir/$base+,config.materialized:incremental --vars '{"ci_row_limit": 1000}'
+
+            elif [[ "$dir" == seeds* ]]; then
+              echo ">>> Running seed full-refresh for $base"
+              docker run --rm \
+                -e AWS_REGION=${{ secrets.AWS_REGION }} \
+                -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+                -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+                -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+                -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+                -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+                -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+                -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+                ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+                seed -s path:$dir/$base+ --vars '{"ci_row_limit": 1000}' --full-refresh
             fi
           done
 
-      - name: Process deleted files
-        if: steps.changes.outputs.deleted != ''
+      - name: Run dbt for deleted models/seeds
+        if: ${{ steps.changes.outputs.deleted != '' }}
         run: |
-          echo "Processing deleted files..."
-          echo "${{ steps.changes.outputs.deleted }}" | while read -r path; do
-            echo " -> $path"
-            # Example: log deletion handling
-            # In dbt you might need to drop relations manually if required
+          echo ">>> Handling deleted models/seeds"
+          echo "${{ steps.changes.outputs.deleted }}" | while read path; do
+            [ -z "$path" ] && continue
+            echo ">>> Deleted: $path"
           done
+
+          docker run --rm \
+            -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+            -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+            -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+            -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+            build --empty --full-refresh --vars '{"ci_row_limit": 1000}'
+
+          docker run --rm \
+            -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            -e S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }} \
+            -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+            -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST }} \
+            -e POSTGRES_PORT=${{ secrets.POSTGRES_PORT }} \
+            -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            -e POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ci \
+            build -s config.materialized:incremental --vars '{"ci_row_limit": 1000}'
